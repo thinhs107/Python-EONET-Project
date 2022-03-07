@@ -1,15 +1,16 @@
 import Helper.InitRequest as HelperRequests
-import petl as etl
 import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 import numpy as np
+import datetime as date
+
 
 # https://eonet.gsfc.nasa.gov/api/v2.1/events
 
-def map_output(title):
+def map_output(iTitle):
     user_dataFrame = pd.read_csv('../NasaAPI/EONET.csv')
-    fig = plt.figure(figsize=(12, 9))
+    # fig = plt.figure(figsize=(12, 9))
     m = Basemap(projection='mill',
                 llcrnrlat=-90,
                 urcrnrlat=90,
@@ -29,30 +30,36 @@ def map_output(title):
     m.drawcoastlines()
     m.drawcounties()
 
-    plt.title(f"{title}", fontsize=20)
+    plt.title(f"{iTitle}", fontsize=20)
     plt.show()
 
 
 if __name__ == '__main__':
-    URL = 'https://eonet.gsfc.nasa.gov/api/v2.1/events/EONET_6024'
+
+    URL = 'https://eonet.gsfc.nasa.gov/api/v3/events'
 
     APIRequest = HelperRequests.CallRequest(URL)
     # print(APIRequest.Get_Requests())
     # print(type(APIRequest.Get_Requests()))
 
-    title = APIRequest.Get_Requests()['title']
-    geometries = APIRequest.Get_Requests()['geometries']
+    Events = APIRequest.Get_Requests()['events']
+    print(type(Events))
+    title = [sub['title'] for sub in Events]
+    geometries = [geo['geometry'] for geo in Events]
 
-    df = pd.DataFrame(geometries)
-    df_split = pd.DataFrame(df['coordinates'].tolist())
+    coordinates = []
 
-    # print(df_split)
+    for index in range(len(geometries)):
+        for key in geometries[index]:
+            coordinates.append(key['coordinates'])
 
-    df['Longitude'] = df_split[0]
-    df['Latitude'] = df_split[1]
-    df['Title'] = title
+    df = pd.DataFrame(coordinates)
+
+    df['Longitude'] = df[0]
+    df['Latitude'] = df[1]
+    # df['Title'] = title
     print(df)
-
+    #
     df.to_csv('EONET.csv', index=False)
-
-    map_output(title)
+    #
+    map_output(f'Current Natural Event Happening as of {date.date.today()}')
